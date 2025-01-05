@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Bluffing Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .cards {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .card {
+            padding: 20px;
+            border: 3px solid #4a148c;
+            border-radius: 8px;
+            background-color: white;
+            min-width: 30px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            background-color: #6200ea;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        button:hover:not(:disabled) {
+            background-color: #7c4dff;
+        }
+        button:disabled {
+            background-color: #9e9e9e;
+        }
+        .game-log {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .claim-controls {
+            margin: 20px 0;
+            padding: 20px;
+            border: 3px solid #6200ea;
+            border-radius: 8px;
+            background-color: #f3e5f5;
+        }
+        .claim-controls.active {
+            display: block;
+        }
+        .card-type-selection {
+            margin: 15px 0;
+            display: flex;
+            gap: 25px;
+        }
+        .card-type-selection label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 15px 25px;
+            border: 3px solid #4a148c;
+            border-radius: 8px;
+            background-color: white;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .card-type-selection label:hover {
+            background-color: #9370db;
+            color: white;
+        }
+        .card-type-selection input[type="radio"] {
+            width: 25px;
+            height: 25px;
+            margin-right: 10px;
+            accent-color: #32cd32;
+        }
+        .card-type-selection label.selected {
+            background-color: #4caf50;
+            color: white;
+            border-color: #2e7d32;
+        }
+        .amount-selection {
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .amount-selection input[type="number"] {
+            width: 80px;
+            padding: 10px;
+            font-size: 18px;
+            border: 3px solid #4a148c;
+            border-radius: 8px;
+            margin-left: 10px;
+        }
+        .debug-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #fff;
+        }
+        .debug-panel h3, .debug-panel h4 {
+            color: #00ff00;
+            margin: 0 0 10px 0;
+        }
+        .debug-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        .debug-section {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .debug-panel pre, .debug-panel #eventLog, .debug-panel #uiState {
+            margin: 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            color: #00ff00;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .event-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #00ff00;
+            background-color: #1a1a1a;
+        }
+        .ui-state-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+        .ui-state-item .label {
+            color: #00ff00;
+        }
+        .ui-state-item .value {
+            color: #fff;
+        }
+        .debug-timestamp {
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="login" class="section">
+            <h2>Join Game</h2>
+            <input type="text" id="playerName" placeholder="Enter your name">
+            <button onclick="game.joinGame()">Join</button>
+        </div>
+
+        <div id="game" class="section" style="display: none;">
+            <div class="player-info">
+                <div>Players: <span id="playerList"></span></div>
+                <div>Lives: <span id="lives">3</span></div>
+            </div>
+
+            <div id="cards" class="cards"></div>
+
+            <div id="claimControls" class="claim-controls">
+                <h3>Make a Bid</h3>
+                <div class="card-type-selection">
+                    <label><input type="radio" name="cardType" value="A"> Card A</label>
+                    <label><input type="radio" name="cardType" value="B"> Card B</label>
+                    <label><input type="radio" name="cardType" value="C"> Card C</label>
+                </div>
+                <div class="amount-selection">
+                    <label>Amount: <input type="number" id="cardAmount" min="1" max="6" value="1"></label>
+                </div>
+                <button onclick="game.makeClaim()">Submit Bid</button>
+            </div>
+
+            <div class="controls">
+                <button id="startButton" onclick="game.startGame()" style="display: none;">Start Game</button>
+                <button id="bidButton" onclick="game.showBidControls()" disabled>Make New Bid</button>
+                <button id="disputeButton" onclick="game.dispute()" disabled>Dispute</button>
+            </div>
+
+            <div id="gameLog" class="game-log"></div>
+
+            <div id="debugPanel" class="debug-panel">
+                <h3>Debug Info</h3>
+                <div class="debug-sections">
+                    <div class="debug-section">
+                        <h4>Game State</h4>
+                        <pre id="debugInfo"></pre>
+                    </div>
+                    <div class="debug-section">
+                        <h4>Recent Events</h4>
+                        <div id="eventLog"></div>
+                    </div>
+                    <div class="debug-section">
+                        <h4>UI State</h4>
+                        <div id="uiState"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/game.js"></script>
+    <script>
+        // Enhanced debug panel updates
+        setInterval(() => {
+            if (window.DEBUG && window.game) {
+                // Update UI State section
+                const uiStateDiv = document.getElementById('uiState');
+                const uiState = game.gameState.uiState;
+                uiStateDiv.innerHTML = Object.entries(uiState)
+                    .map(([key, value]) => `
+                        <div class="ui-state-item">
+                            <span class="label">${key}:</span>
+                            <span class="value">${value}</span>
+                        </div>
+                    `).join('');
+
+                // Update Event Log section
+                const eventLogDiv = document.getElementById('eventLog');
+                const events = game.gameState.eventLog.slice(-5);
+                eventLogDiv.innerHTML = events.map(event => `
+                    <div class="event-entry">
+                        <div class="debug-timestamp">${new Date(event.timestamp).toLocaleTimeString()}</div>
+                        <div>${event.event}</div>
+                        <div>${JSON.stringify(event.data)}</div>
+                    </div>
+                `).join('');
+
+                // Update Game State section (already handled by the game class)
+            }
+        }, 100); // Update more frequently for smoother debugging
+    </script>
+</body>
+</html> 
